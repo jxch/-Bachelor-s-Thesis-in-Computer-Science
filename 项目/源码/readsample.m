@@ -13,4 +13,4 @@ for i=classnum
         allsamples=[allsamples;b];
     end
 end
-sample=allsamples;
+sample=allsamples;%(i*j,rows*cols)
