@@ -1,81 +1,18 @@
 function [eigvector, eigvalue] = NPE(options, data)
-% NPE: Neighborhood Preserving Embedding
-%
-%       [eigvector, eigvalue] = NPE(options, data)
-% 
-%             Input:
-%               data    - Data matrix. Each row vector of data is a data point.
-%
-%               options - Struct value in Matlab. The fields in options
-%                         that can be set:
-%
-%                      NeighborMode -  Indicates how to construct the graph. Choices
-%                           are: 
-%                           'KNN'     -  Put an edge between two nodes if and
-%                                        only if they are among the k nearst
-%                                        neighbors of each other. Default
-%                                        option.
-%                       'Supervised'  -  Two variations:
-%                                       1. k=0, Put an edge between two nodes 
-%                                          if and only if they belong to
-%                                          same class. 
-%                                       2. k>0, The distance between two nodes 
-%                                          in the same class will be smaller than 
-%                                          two nodes have diff. labels 
-%                                          The label information 'gnd' should be
-%                                          provided.
-%                                              
-%                       k           -   The number of neighbors.
-%                                       Default k = 5;
-%                       gnd         -   The parameter needed under 'Supervised'
-%                                       NeighborMode.  Colunm vector of the label
-%                                       information for each data point.
-%
-%                         Please see LGE.m for other options.
-%
-%
-%             Output:
-%               eigvector - Each column is an embedding function, for a new
-%                           data point (row vector) x,  y = x*eigvector
-%                           will be the embedding result of x.
-%               eigvalue  - The eigvalue of LPP eigen-problem. sorted from
-%                           smallest to largest. 
-%
-%    Examples:
-%
-%       
-%       
-%       fea = rand(50,70);
-%       gnd = [ones(10,1);ones(15,1)*2;ones(10,1)*3;ones(15,1)*4];
-%       options = [];
-%       options.k = 5;
-%       options.NeighborMode = 'Supervised';
-%       options.gnd = gnd;
-%       [eigvector, eigvalue] = NPE(options, fea);
-%       Y = fea*eigvector;
-% 
-% 
-%
-% See also LPP, LGE
-%
-%Reference:
-%
-%   Xiaofei He, Deng Cai, Shuicheng Yan, and Hong-Jiang
-%   Zhang, "Neighborhood Preserving Embedding", Tenth IEEE International 
-%   Conference on Computer Vision (ICCV'2005), 2005
-%
-%   Sam Roweis & Lawrence Saul. "Nonlinear dimensionality reduction by 
-%   locally linear embedding", Science, v.290 no.5500 , Dec.22, 2000. 
-%   pp.2323--2326.
-%
-%   version 2.1 --June/2007 
-%   version 2.0 --May/2007 
-%   version 1.1 --May/2006 
-%   version 1.0 --Feb/2005 
-%
-%   Written by Deng Cai (dengcai2 AT cs.uiuc.edu)
-
-
+% NPE: Neighborhood Preserving Embedding  邻域保持嵌入
+%             输入:
+%               data    - 数据矩阵，每个行向量是一个数据点
+%               options - 以下设置:
+%                      NeighborMode -  指示如何构造图形
+%                           'KNN'     -  当且仅当它们属于彼此的k个邻近区域时，在两个节点之间设置边缘。默认选项。
+%                           'Supervised'  -  监督，两个选项:
+%                                       1. k = 0，当且仅当它们属于同一个类时，在两个节点之间放置一个边。
+%                                       2. k> 0，同一类中两个节点之间的距离小于两个节点的diff。标签应提供标签信息'gnd'。每个人脸数据的标签矢量，从1，2，……，n。
+%                       k           -   邻居数量。 默认 k = 5;
+%                       gnd         -   NeighborMode 下的 'Supervised'所需的参数。每个数据点的标签信息的列向量。
+%             输出:
+%               eigvector - 每列都是嵌入函数, y = x*eigvector 将是x的嵌入结果。特征向量（每一列）
+%               eigvalue  - LPP特征问题的特征值。 从最小到最大排序。
 
 if (~exist('options','var'))
    options = [];
@@ -91,20 +28,20 @@ end
 
 
 
-[nSmp,nFea] = size(data);
+[nSmp,nFea] = size(data);%(行，列)
 
 if options.k >= nSmp
     error('k is too large!');
 end
 
 if(options.k > nFea)
-    tol=1e-3; % regularlizer in case constrained fits are ill conditioned
+    tol=1e-3; % 在受约束的情况下，常规限制器会受到限制
 else
     tol=1e-12;
 end
 
 
-
+% 第一步：构造近邻图。使用K-近邻法寻找与数据点欧氏距离最近的K个近邻点。
 if options.k <= 0  % Always supervised!
     if ~isfield(options,'gnd')
         error('gnd should be provided!');
@@ -115,14 +52,14 @@ if options.k <= 0  % Always supervised!
     if ~isfield(options,'bEigs')
         options.bEigs = 0;
     end
-
+% 第二步：确定权值。
     W = zeros(nSmp,nSmp);
     for ii=1:nSmp
         idx = find(options.gnd==options.gnd(ii));
         idx(find(idx==ii)) = [];
-        z = data(idx,:)-repmat(data(ii,:),length(idx),1); % shift ith pt to origin
-        C = z*z';                                   % local covariance
-        C = C + eye(size(C))*tol*trace(C);                   % regularlization
+        z = data(idx,:)-repmat(data(ii,:),length(idx),1); % 将像素转移到原点
+        C = z*z';                                   % 局部协方差
+        C = C + eye(size(C))*tol*trace(C);                   % 正规化
         tW = C\ones(length(idx),1);                           % solve Cw=1
         tW = tW/sum(tW);                  % enforce sum(w)=1
         W(idx,ii) = tW;
@@ -132,12 +69,13 @@ if options.k <= 0  % Always supervised!
     M = max(M,M');
     M = sparse(M);
 else
+% 第一步：构造近邻图。使用K-近邻法寻找与数据点欧氏距离最近的K个近邻点。
     switch lower(options.NeighborMode)
         case {lower('KNN')}
 
-            Distance = EuDist2(data,[],0); 
-            [sorted,index] = sort(Distance,2);
-            neighborhood = index(:,2:(1+options.k));
+            Distance = EuDist2(data,[],0); %欧氏距离
+            [sorted,index] = sort(Distance,2);%排序
+            neighborhood = index(:,2:(1+options.k));%找到前K个
             
         case {lower('Supervised')}
             if ~isfield(options,'gnd')
@@ -149,7 +87,7 @@ else
             if ~isfield(options,'bEigs')
                 options.bEigs = 0;
             end
-
+%每个人脸数据的标签矢量
             Label = unique(options.gnd);
             nLabel = length(Label);
             neighborhood = zeros(nSmp,options.k);
@@ -158,24 +96,24 @@ else
                 if options.k >= length(classIdx)
                     error('k is too large!');
                 end
-                Distance = EuDist2(data(classIdx,:),[],0); 
-                [sorted,index] = sort(Distance,2);
-                neighborhood(classIdx,:) = classIdx(index(:,2:(1+options.k)));
+                Distance = EuDist2(data(classIdx,:),[],0); %欧氏距离
+                [sorted,index] = sort(Distance,2);%排序
+                neighborhood(classIdx,:) = classIdx(index(:,2:(1+options.k)));%找到前K个
             end
         otherwise
             error('NeighborMode does not exist!');
     end
-
+% 第二步：确定权值。用近邻对各个数据点进行重构。
     W = zeros(options.k,nSmp);
     for ii=1:nSmp
-        z = data(neighborhood(ii,:),:)-repmat(data(ii,:),options.k,1); % shift ith pt to origin
-        C = z*z';                                        % local covariance
-        C = C + eye(size(C))*tol*trace(C);                   % regularlization
-        W(:,ii) = C\ones(options.k,1);                           % solve Cw=1
-        W(:,ii) = W(:,ii)/sum(W(:,ii));                  % enforce sum(w)=1
+        z = data(neighborhood(ii,:),:)-repmat(data(ii,:),options.k,1); % 将像素转移到原点
+        C = z*z';                                        % 局部协方差
+        C = C + eye(size(C))*tol*trace(C);                   % 正规化
+        W(:,ii) = C\ones(options.k,1);                           % Cw=1
+        W(:,ii) = W(:,ii)/sum(W(:,ii));                  % sum(w)=1
     end
 
-    M = sparse(1:nSmp,1:nSmp,ones(1,nSmp),nSmp,nSmp,4*options.k*nSmp);
+    M = sparse(1:nSmp,1:nSmp,ones(1,nSmp),nSmp,nSmp,4*options.k*nSmp);%稀疏
     for ii=1:nSmp
         w = W(:,ii);
         jj = neighborhood(ii,:)';
@@ -188,8 +126,9 @@ else
 end
 
 
+% 第三步：计算特征映射。
 %==========================
-% If data is too large, the following centering codes can be commented
+% 如果数据量过大，注释以下代码
 %==========================
 if isfield(options,'keepMean') && options.keepMean
 else
@@ -208,12 +147,12 @@ end
 
 
 
-[eigvector, eigvalue] = LGE(M, [], options, data);
+[eigvector, eigvalue] = LGE(M, [], options, data);%调用LGE函数，计算高维数据data的线性图形嵌入
 
 
-eigIdx = find(eigvalue < 1e-10);
-eigvalue (eigIdx) = [];
-eigvector(:,eigIdx) = [];
+eigIdx = find(eigvalue < 1e-10);% 取特征值小于1*10^(-10)所对应的特征值
+eigvalue (eigIdx) = [];% 将特征值小于1*10^(-10)的特征值清空
+eigvector(:,eigIdx) = [];% 将特征值小于1*10^(-10)的特征向量去掉
 
 
 

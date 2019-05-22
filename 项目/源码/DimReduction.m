@@ -1,4 +1,4 @@
-function [eigvector, eigvalue] = DimReduction(options, allsamples)
+function [eigvector, eigvalue] = dimReduction(options, allsamples)
     switch(options.func)
         case 'NPE'
             [eigvector, eigvalue] = NPE(options, allsamples);

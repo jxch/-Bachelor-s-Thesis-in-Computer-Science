@@ -201,7 +201,7 @@ WPrime = max(WPrime,WPrime');
 
 
 %======================================
-% Generalized Eigen
+% ЙувхЬиеї
 %======================================
 
 dimMatrix = size(WPrime,2);
