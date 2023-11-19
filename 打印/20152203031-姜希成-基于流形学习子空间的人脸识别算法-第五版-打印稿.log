@@ -1,0 +1,20 @@
+%%[ ProductName: Distiller ]%%
+%%[Page: 1]%%
+%%[Page: 2]%%
+%%[Page: 3]%%
+KaiTi_GB2312 not found, using Courier.
+%%[ Error: typecheck; OffendingCommand: show ]%%
+
+Stack:
+(?
+0.0
+[]
+10.0
+0
+0
+1.0
+false
+
+
+%%[ Flushing: rest of job (to end-of-file) will be ignored ]%%
+%%[ Warning: PostScript error. No PDF file produced. ] %%
